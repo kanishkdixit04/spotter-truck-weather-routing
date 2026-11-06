@@ -61,6 +61,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert
 .mark { position: absolute; left: 8px; top: 8px; width: 24px; height: 24px; display: grid; place-items: center; background: var(--raised);
   border-radius: 4px; font: 600 12px var(--mono); color: var(--muted); }
 .combo > input:not([type="checkbox"]):not([type="range"]) { padding-left: 42px; }
+.searching { position: absolute; right: 44px; top: 12px; color: var(--dim); }
 .options { position: absolute; z-index: 20; left: 0; right: 0; top: 44px; margin: 0; padding: 4px; list-style: none; background: var(--raised);
   border: 1px solid var(--line2); border-radius: var(--r); max-height: 240px; overflow: auto; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5); }
 .options li { padding: 9px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; }
@@ -275,6 +276,7 @@ kbd { font: 600 12px var(--mono); padding: 2px 8px; border: 1px solid var(--line
   .layers { justify-self: start; margin-left: -8px; }
   .track { height: 46px; }
   .scale { display: none; }
+  .ticks span:nth-child(2), .ticks span:nth-child(4) { display: none; }
   .maplibregl-ctrl-top-right { top: 228px; }
   .basemap { top: 228px; right: 52px; }
 }

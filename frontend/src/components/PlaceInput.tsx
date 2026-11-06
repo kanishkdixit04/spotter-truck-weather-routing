@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { geocode } from "../api";
 import type { Place } from "../types";
 
@@ -13,7 +14,8 @@ export default function PlaceInput({ label, mark, value, onChange }: Props) {
   const [failed, setFailed] = useState(false);
   const ctl = useRef<AbortController>();
 
-  useEffect(() => setText(value?.label ?? ""), [value]);
+  // Follow a place chosen from outside (swap, example links). Typing clears the value, which must not wipe the text.
+  useEffect(() => { if (value) setText(value.label); }, [value]);
 
   function onType(v: string) {
     setText(v);
@@ -58,6 +60,7 @@ export default function PlaceInput({ label, mark, value, onChange }: Props) {
             if (e.key === "Escape") setOpen(false);
           }}
         />
+        {searching && <Loader2 className="spin searching" size={16} aria-hidden />}
         {open && (options.length > 0 || failed || (!searching && !value && text.trim().length >= 2)) && (
           <ul className="options" role="listbox">
             {options.map((o, i) => (

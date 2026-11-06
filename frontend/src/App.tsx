@@ -108,6 +108,7 @@ export default function App() {
   };
   const [layer, setLayer] = useState<LayerKey>("risk");
   const [sample, setSample] = useState(!hasTripInUrl());
+  const [formKey, setFormKey] = useState(0); // bumping it empties the From and To boxes
   const [basemap, setBasemap] = useState<Basemap>(savedBasemap);
   const pickBasemap = (b: Basemap) => {
     setBasemap(b);
@@ -137,6 +138,7 @@ export default function App() {
       setPreview(null);
       setEnds({ from: f.origin.label, to: f.destination.label });
       setPlan(p);
+      if (window.innerWidth < 800) setSnap(0); // phones: show the map first, the answer sits in the peek bar
       setPlanKey((k) => k + 1);
       setSelected(p.recommendation.route_id);
       setLoading(false);
@@ -183,7 +185,8 @@ export default function App() {
   const startOwn = () => {
     setSample(false);
     setForm({ ...form, origin: null, destination: null });
-    document.querySelector<HTMLInputElement>(".place input")?.focus();
+    setFormKey((k) => k + 1);
+    window.setTimeout(() => document.querySelector<HTMLInputElement>(".place input")?.focus(), 0); // after the boxes remount
   };
 
   // Keyboard shortcuts, ignored while typing in a field.
@@ -257,7 +260,7 @@ export default function App() {
               <button className="link" onClick={startOwn}>Plan your own</button>
             </p>
           )}
-          <TripForm form={form} set={editForm} loading={loading} onSubmit={() => { setSample(false); submit(form); setSnap((s) => (s === 0 ? 1 : s)); }} />
+          <TripForm key={formKey} form={form} set={editForm} loading={loading} onSubmit={() => { setSample(false); submit(form); setSnap((s) => (s === 0 ? 1 : s)); }} />
           {error && (
             <div className="error" role="alert">
               <TriangleAlert size={16} aria-hidden />

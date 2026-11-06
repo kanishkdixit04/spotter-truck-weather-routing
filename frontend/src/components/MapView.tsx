@@ -164,6 +164,21 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, alerts,
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     m.addControl(new maplibregl.ScaleControl({ unit: "imperial" }), "bottom-right");
     m.touchZoomRotate.disableRotation();
+    // If the window is resized before the user moves the map, keep the trip framed.
+    let touched = false;
+    m.on("dragstart", () => (touched = true));
+    m.on("zoomstart", (e) => { if ((e as unknown as { originalEvent?: Event }).originalEvent) touched = true; });
+    const ro = new ResizeObserver(() => {
+      const p = planRef.current;
+      if (touched || !box.current) return;
+      if (p) {
+        const b = new maplibregl.LngLatBounds();
+        p.routes.forEach((r) => r.geometry.forEach((c) => b.extend(c)));
+        m.resize();
+        m.fitBounds(b, { padding: padFor(box.current), duration: 0 });
+      } else fitUS(m, box.current);
+    });
+    ro.observe(box.current!);
     const onStyle = () => {
       m.addSource("cps", { type: "geojson", data: EMPTY });
       m.addSource("hl", { type: "geojson", data: EMPTY });
@@ -180,7 +195,7 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, alerts,
     map.current = m;
     flow.current = createWindFlow(m);
     if (import.meta.env.DEV) (window as unknown as { __map: MLMap }).__map = m;
-    return () => { flow.current?.destroy(); m.remove(); };
+    return () => { ro.disconnect(); flow.current?.destroy(); m.remove(); };
   }, []);
 
   // basemap switch: swap the style, then rebuild our layers on top of it
@@ -390,7 +405,7 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, alerts,
 function padFor(el: HTMLElement) {
   const w = el.clientWidth, h = el.clientHeight;
   return w < 800
-    ? { top: 235, bottom: Math.min(h * 0.5, 330), left: 30, right: 30 }
+    ? { top: 235, bottom: 170, left: 30, right: 100 }
     : { top: 60, bottom: 200, left: Math.min(450, w * 0.4), right: 70 };
 }
 function fitUS(m: MLMap, el: HTMLElement) {
