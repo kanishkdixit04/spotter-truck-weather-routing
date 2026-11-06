@@ -355,3 +355,15 @@ kbd { font: 600 12px var(--mono); padding: 2px 8px; border: 1px solid var(--line
 .perf { position: absolute; z-index: 40; right: 12px; top: 56px; margin: 0; padding: 10px 12px; display: grid; gap: 3px; background: rgba(14, 18, 22, 0.94); border: 1px solid var(--line2); border-radius: var(--r); font: 12px var(--mono); pointer-events: none; }
 .perf div { display: flex; justify-content: space-between; gap: 18px; }
 .perf dt { color: var(--dim); } .perf dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.rules-link { justify-self: start; margin-top: -10px; font-size: 13px; }
+.dialog.wide { width: min(640px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; }
+.dialog h3 { font-size: 13.5px; margin: 16px 0 6px; }
+.dialog ul { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; }
+.rules-lead { color: var(--muted); margin: 0 0 12px; text-wrap: pretty; }
+.rules-scroll { overflow-x: auto; }
+.rules { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; min-width: 520px; }
+.rules th, .rules td { padding: 8px 8px; text-align: left; border-top: 1px solid var(--line); white-space: nowrap; }
+.rules thead th { border-top: 0; color: var(--text); font-weight: 600; }
+.rules thead .sw { margin-right: 6px; }
+.rules tbody th { color: var(--muted); font-weight: 500; }

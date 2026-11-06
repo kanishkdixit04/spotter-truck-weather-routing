@@ -21,6 +21,7 @@ import ShortcutHelp from "./components/ShortcutHelp";
 import Loading from "./components/Loading";
 import { loadRecent, rememberTrip } from "./recent";
 import PerfHud from "./components/PerfHud";
+import RulesDialog from "./components/RulesDialog";
 import { timed } from "./perf";
 import { ApiError, getAlerts, getHeatmap, getRoutes, planTrip } from "./api";
 import RetryCountdown from "./components/RetryCountdown";
@@ -123,6 +124,7 @@ export default function App() {
   const heatBar = useRef<HeatBarHandle>(null);
   const [help, setHelp] = useState(false);
   const [hud, setHud] = useState(false);
+  const [rules, setRules] = useState(false);
   const run = useRef(0);
 
   const submit = useCallback(async (f: FormState) => {
@@ -284,13 +286,14 @@ export default function App() {
           {loading && <Loading routesReady={!!draft} />}
           {plan && !loading && (
             <Results key={planKey} plan={plan} layer={layer} selected={selected} onSelect={setSelected} onHover={setHover}
-                     deps={plan.departures} alerts={alerts} ends={ends} onToast={showToast} onLoad={changeLoad} onLeaveAt={leaveAt}
+                     deps={plan.departures} alerts={alerts} ends={ends} onToast={showToast} onLoad={changeLoad} onRules={() => setRules(true)} onLeaveAt={leaveAt}
                      advisor={<DepartureAdvisor data={plan.departures} currentTs={plan.departure_ts} onPick={leaveAt} />} />
           )}
         </div>
       </aside>
       <div className={"toast" + (toast ? " show" : "")} role="status" aria-live="polite">{toast}</div>
       {hud && <PerfHud />}
+      {rules && <RulesDialog onClose={() => setRules(false)} />}
       {help && <ShortcutHelp onClose={() => setHelp(false)} />}
       <HeatBar ref={heatBar} heat={heat} loading={heatLoading} error={heatError} onFrame={onFrame} onLayer={setLayer} onFollow={(on) => map.current?.setFollow(on)}
                route={plan?.routes.find((r) => r.id === selected) ?? null} />

@@ -72,10 +72,10 @@ async function copyText(text: string) {
 
 interface Props {
   plan: PlanResponse; layer: LayerKey; selected: string; onSelect: (id: string) => void; onHover: (c: Checkpoint | null) => void;
-  onLoad: (lbs: number) => void; onToast: (message: string) => void; ends: { from: string; to: string }; deps: DeparturesResponse | null; alerts: WeatherAlert[] | null; advisor: ReactNode; onLeaveAt: (ts: number) => void;
+  onRules: () => void; onLoad: (lbs: number) => void; onToast: (message: string) => void; ends: { from: string; to: string }; deps: DeparturesResponse | null; alerts: WeatherAlert[] | null; advisor: ReactNode; onLeaveAt: (ts: number) => void;
 }
 
-export default function Results({ plan, layer, selected, onSelect, onHover, deps, alerts, advisor, onLeaveAt, onLoad, ends, onToast }: Props) {
+export default function Results({ plan, layer, selected, onSelect, onHover, deps, alerts, advisor, onLeaveAt, onLoad, onRules, ends, onToast }: Props) {
   const top = useRef<HTMLElement>(null);
   // On phones the results sit below the form inside the sheet: bring them into view.
   useEffect(() => {
@@ -118,6 +118,7 @@ export default function Results({ plan, layer, selected, onSelect, onHover, deps
       </section>
 
       <WhyThis plan={plan} />
+      <button className="link rules-link" onClick={onRules}>How is risk scored?</button>
 
       <AlertList alerts={alerts} routeId={rec.route_id} />
       <div className="actions">

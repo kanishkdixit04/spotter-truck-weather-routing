@@ -14,7 +14,7 @@ You need Python 3.11+ and Node 18+.
 # backend
 cd backend
 pip install -r requirements.txt
-python manage.py test routing      # 39 tests, the weather, routing and alert APIs are faked
+python manage.py test routing      # 47 tests, the weather, routing and alert APIs are faked
 python manage.py runserver 8000
 ```
 
@@ -22,10 +22,29 @@ python manage.py runserver 8000
 # frontend, in a second terminal
 cd frontend
 npm install
+npm test                           # 15 unit tests for the risk, verdict and load logic
 npm run dev                        # http://localhost:5173, /api goes to port 8000
 ```
 
 Nothing needs an API key. If you do have an OpenRouteService key, set `ORS_API_KEY` and routing switches to their truck profile, which knows about weight limits.
+
+## How the pieces fit
+
+```mermaid
+flowchart LR
+  B[Browser: React and MapLibre] -->|POST /api/routes| R[Django]
+  B -->|POST /api/plan| R
+  B -->|POST /api/heatmap| R
+  B -->|POST /api/alerts| R
+  B -->|GET /api/geocode| R
+  R --> O[OSRM or OpenRouteService<br/>route lines]
+  R --> W[Open-Meteo<br/>forecast, MET Norway as backup]
+  R --> N[National Weather Service<br/>alerts]
+  R --> P[Photon<br/>place search]
+  R -.->|20 minute cache per forecast cell| C[(In-memory cache)]
+```
+
+Order of events for one trip: the browser asks for the route lines first and draws them on the map within a second or two. Then `/api/plan` fetches the forecast once per ~11 km cell, works out when the truck reaches each checkpoint, scores the risk, ranks the routes, and also scans departures every 3 hours for the best time to leave. The heatmap and the alerts load afterwards without blocking the answer.
 
 ## How it decides
 
@@ -55,15 +74,17 @@ The first visit opens a live sample trip (Seattle to Salt Lake City), so the pag
 - **The map.** Streets, Satellite (USGS, US only) or Dark. The selected route is coloured by risk. Wind, Rain and Snow buttons change the heatmap, the route colour, the checkpoint dots and the ribbons together. On the Wind layer, animated streaks flow the way the wind blows.
 - **Forecast timeline.** Play it or drag it across 48 hours. Bars above the slider show the worst conditions on the corridor for each hour. A truck marker per route moves with the slider, a line says what the selected truck is doing and driving through, and "Follow truck" keeps the camera on it.
 - **Take it with you.** Share the trip as a link, or print a one-page driver briefing with the stops, alerts and a table of every checkpoint.
-- **Keyboard.** Space plays, the arrow keys step the forecast, `[` and `]` switch layers, A, B and C pick a route, `/` jumps to the From field, `?` lists them all.
+- **Check the logic.** "Why Route A?" opens the ranking table, one rule per row, with the deciding rule marked. "How is risk scored?" shows the brief's threshold table.
+- **Hover the map.** With the forecast on, the weather under your cursor at the slider time shows in a small tooltip.
+- **Keyboard.** Space plays, the arrow keys step the forecast, `[` and `]` switch layers, A, B and C pick a route, `/` jumps to the From field, `P` shows frame rate and timings, `?` lists them all.
 - **Phones.** The panel is a bottom sheet you drag between three heights. At the lowest it shows a one-line summary.
 
 ## API
 
 - `GET /api/geocode?q=`
-- `POST /api/plan` with `origin`, `destination`, `departure` (ISO time with offset), `load_lbs`, `interval_mi` (10, 25 or 50) and `hos`
+- `POST /api/routes` takes the same body as `/api/plan` and returns just the route lines, fast, for the first draw
+- `POST /api/plan` (the response also carries `departures`: the best route's risk for each departure in the next 36 hours) with `origin`, `destination`, `departure` (ISO time with offset), `load_lbs`, `interval_mi` (10, 25 or 50) and `hos`
 - `POST /api/heatmap` with `corridor`, `start_ts` and `load_lbs`. Returns risk, wind, rain, snow and wind direction for 49 hours
-- `POST /api/departures` takes the same body as `/api/plan` and returns the best route's risk for each departure in the next 36 hours
 - `POST /api/alerts` with up to 16 `{lat, lon, mile}` points, returns the active weather alerts along them
 
 Errors always look like `{"error": "...", "details": {...}}`. Departure has to be between an hour ago and 7 days ahead, because Open-Meteo gets unreliable past that. If Open-Meteo says it is rate limited, you get a 503 and a message asking you to wait a minute, instead of a vague failure.
