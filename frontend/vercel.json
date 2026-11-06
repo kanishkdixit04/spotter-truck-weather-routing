@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://spotter-api-three.vercel.app/api/$1" }
+  ]
+}

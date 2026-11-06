@@ -1,0 +1,14 @@
+# dependencies and build output
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
+
+# local and deploy state (secrets live here)
+.env
+.env.*
+.vercel/
+
+# the assessment brief stays out of the repo
+assessment-brief.pdf
