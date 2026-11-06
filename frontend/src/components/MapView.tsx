@@ -4,6 +4,7 @@ import type { Checkpoint, HeatmapResponse, LayerKey, PlanResponse, Route, RouteP
 import { heatColor, LEVELS, layerLevel, levelColor } from "../risk";
 import { fmtTime } from "../format";
 import { createWindFlow, mercY } from "../windFlow";
+import { perf } from "../perf";
 
 export type Basemap = "streets" | "dark" | "satellite";
 export const BASEMAPS: { id: Basemap; label: string }[] = [
@@ -115,6 +116,7 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, draft, 
     setHeat(hour, layer, playing) {
       const m = map.current, hs = heatState.current, p = planRef.current;
       if (!m || !hs || !p) return;
+      const t0 = performance.now();
       const { data, canvas, small } = hs;
       const h0 = Math.max(0, Math.min(48, Math.floor(hour))), h1 = Math.min(48, h0 + 1), f = hour - h0;
       const a = data.layers[layer][h0], b = data.layers[layer][h1];
@@ -137,6 +139,7 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, draft, 
       if (src) { src.play(); m.triggerRepaint(); if (!playing) m.once("render", () => src.pause()); }
       const sec = data.hours[0] - p.departure_ts + hour * 3600;
       for (const r of p.routes) trucks.current[r.id]?.setLngLat(truckAt(r, sec));
+      perf.heatDrawMs = performance.now() - t0;
       lastSec.current = sec;
       hourRef.current = hour;
       flow.current?.setHour(hour);

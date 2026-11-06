@@ -7,6 +7,7 @@ const KEYS: [string, string][] = [
   ["[ and ]", "Switch between Risk, Wind, Rain and Snow"],
   ["A, B, C", "Select a route"],
   ["/", "Jump to the From field"],
+  ["P", "Show or hide the performance panel"],
   ["?", "Show this list"],
 ];
 

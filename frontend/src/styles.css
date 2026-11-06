@@ -351,3 +351,7 @@ kbd { font: 600 12px var(--mono); padding: 2px 8px; border: 1px solid var(--line
 .probe[hidden] { display: none; }
 .probe small { color: var(--dim); margin-top: 2px; }
 @media (pointer: coarse) { .probe { display: none; } }
+
+.perf { position: absolute; z-index: 40; right: 12px; top: 56px; margin: 0; padding: 10px 12px; display: grid; gap: 3px; background: rgba(14, 18, 22, 0.94); border: 1px solid var(--line2); border-radius: var(--r); font: 12px var(--mono); pointer-events: none; }
+.perf div { display: flex; justify-content: space-between; gap: 18px; }
+.perf dt { color: var(--dim); } .perf dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; }

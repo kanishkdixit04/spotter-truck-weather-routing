@@ -20,6 +20,8 @@ import HeatBar, { type HeatBarHandle } from "./components/HeatBar";
 import ShortcutHelp from "./components/ShortcutHelp";
 import Loading from "./components/Loading";
 import { loadRecent, rememberTrip } from "./recent";
+import PerfHud from "./components/PerfHud";
+import { timed } from "./perf";
 import { ApiError, getAlerts, getHeatmap, getRoutes, planTrip } from "./api";
 import RetryCountdown from "./components/RetryCountdown";
 import DepartureAdvisor from "./components/DepartureAdvisor";
@@ -120,6 +122,7 @@ export default function App() {
   const map = useRef<MapHandle>(null);
   const heatBar = useRef<HeatBarHandle>(null);
   const [help, setHelp] = useState(false);
+  const [hud, setHud] = useState(false);
   const run = useRef(0);
 
   const submit = useCallback(async (f: FormState) => {
@@ -137,10 +140,10 @@ export default function App() {
     };
     try {
       // Lines first (about a second), weather after: the map answers quickly and the wait feels shorter.
-      const pre = await getRoutes(input).catch(() => null);
+      const pre = await timed("routesMs", getRoutes(input)).catch(() => null);
       if (id !== run.current) return;
       if (pre) setDraft(pre.routes);
-      const p = await planTrip(input);
+      const p = await timed("planMs", planTrip(input));
       if (id !== run.current) return;
       setPreview(null);
       setDraft(null);
@@ -152,7 +155,7 @@ export default function App() {
       setSelected(p.recommendation.route_id);
       setLoading(false);
       setHeatLoading(true);
-      getHeatmap(p)
+      timed("heatmapMs", getHeatmap(p))
         .then((h) => id === run.current && setHeat(h))
         .catch((e) => id === run.current && setHeatError(e.message))
         .finally(() => id === run.current && setHeatLoading(false));
@@ -215,6 +218,7 @@ export default function App() {
       else if (e.key === "]") heatBar.current?.cycleLayer(1);
       else if (e.key === "[") heatBar.current?.cycleLayer(-1);
       else if (e.key === "?") setHelp(true);
+      else if (k === "p") setHud((v) => !v);
       else if (e.key === "/") { e.preventDefault(); document.querySelector<HTMLInputElement>(".place input")?.focus(); }
       else if (route) setSelected(route.id);
     };
@@ -286,6 +290,7 @@ export default function App() {
         </div>
       </aside>
       <div className={"toast" + (toast ? " show" : "")} role="status" aria-live="polite">{toast}</div>
+      {hud && <PerfHud />}
       {help && <ShortcutHelp onClose={() => setHelp(false)} />}
       <HeatBar ref={heatBar} heat={heat} loading={heatLoading} error={heatError} onFrame={onFrame} onLayer={setLayer} onFollow={(on) => map.current?.setFollow(on)}
                route={plan?.routes.find((r) => r.id === selected) ?? null} />
