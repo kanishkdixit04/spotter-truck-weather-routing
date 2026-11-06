@@ -19,12 +19,12 @@ import Results from "./components/Results";
 import HeatBar, { type HeatBarHandle } from "./components/HeatBar";
 import ShortcutHelp from "./components/ShortcutHelp";
 import Loading from "./components/Loading";
-import { ApiError, getAlerts, getHeatmap, planTrip } from "./api";
+import { ApiError, getAlerts, getHeatmap, getRoutes, planTrip } from "./api";
 import RetryCountdown from "./components/RetryCountdown";
 import DepartureAdvisor from "./components/DepartureAdvisor";
 import { defaultDeparture, fmtDur, fmtTime, toIsoWithOffset, toLocalInput } from "./format";
 import { decide } from "./verdict";
-import type { Checkpoint, WeatherAlert, HeatmapResponse, LayerKey, Place, PlanResponse } from "./types";
+import type { Checkpoint, RoutePreview, WeatherAlert, HeatmapResponse, LayerKey, Place, PlanResponse } from "./types";
 
 // Shareable URL: ?o=lat,lon,label&d=lat,lon,label&dep=...&w=...&i=...&h=0|1
 const enc = (p: Place) => `${p.lat},${p.lon},${p.label}`;
@@ -69,6 +69,7 @@ export default function App() {
   const [heatLoading, setHeatLoading] = useState(false);
   const [heatError, setHeatError] = useState("");
   const [preview, setPreview] = useState<{ from: [number, number]; to: [number, number] } | null>(null);
+  const [draft, setDraft] = useState<RoutePreview[] | null>(null); // route lines shown before the weather is ready
   const [toast, setToast] = useState("");
   const toastTimer = useRef<number>();
   const showToast = useCallback((m: string) => {
@@ -133,9 +134,14 @@ export default function App() {
       load_lbs: f.load, interval_mi: f.interval, hos: f.hos,
     };
     try {
+      // Lines first (about a second), weather after: the map answers quickly and the wait feels shorter.
+      const pre = await getRoutes(input).catch(() => null);
+      if (id !== run.current) return;
+      if (pre) setDraft(pre.routes);
       const p = await planTrip(input);
       if (id !== run.current) return;
       setPreview(null);
+      setDraft(null);
       setEnds({ from: f.origin.label, to: f.destination.label });
       setPlan(p);
       if (window.innerWidth < 800) setSnap(0); // phones: show the map first, the answer sits in the peek bar
@@ -157,6 +163,7 @@ export default function App() {
     } catch (e) {
       if (id !== run.current) return;
       setPreview(null);
+      setDraft(null);
       setError((e as Error).message);
       setBusy(e instanceof ApiError && e.status === 503);
       setLoading(false);
@@ -226,7 +233,7 @@ export default function App() {
     <div className="app">
       <a className="skip" href="#verdict" onClick={(e) => { e.preventDefault(); document.getElementById("verdict")?.focus(); }}>Skip to the result</a>
       <Suspense fallback={<div className="map map-wait" aria-hidden />}>
-        <MapView ref={map} preview={preview} alerts={alerts ?? []} plan={plan} selected={selected} onSelect={setSelected} heat={heat} ends={ends} basemap={basemap} layer={layer} />
+        <MapView ref={map} preview={preview} draft={draft} alerts={alerts ?? []} plan={plan} selected={selected} onSelect={setSelected} heat={heat} ends={ends} basemap={basemap} layer={layer} />
       </Suspense>
       <section className="basemap" aria-label="Map style">
         <button className="helpbtn" aria-label="Keyboard shortcuts" onClick={() => setHelp(true)}>?</button>
@@ -267,7 +274,7 @@ export default function App() {
               <div><b>Could not compare routes</b><p>{error}</p>{busy ? <RetryCountdown seconds={45} onRetry={() => submit(form)} /> : <button className="link" onClick={() => submit(form)}>Try again</button>}</div>
             </div>
           )}
-          {loading && <Loading />}
+          {loading && <Loading routesReady={!!draft} />}
           {plan && !loading && (
             <Results key={planKey} plan={plan} layer={layer} selected={selected} onSelect={setSelected} onHover={setHover}
                      deps={plan.departures} alerts={alerts} ends={ends} onToast={showToast} onLoad={changeLoad} onLeaveAt={leaveAt}

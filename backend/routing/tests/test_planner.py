@@ -144,3 +144,24 @@ class DepartureScanTests(SimpleTestCase):
         self.assertGreater(first, 0)
         client.post("/api/plan", self.body(), format="json")  # same cells again: no new weather calls
         self.assertEqual(meteo.call_count, first)
+
+
+@mock.patch("routing.services.weather.request_json", side_effect=fake_meteo)
+@mock.patch("routing.services.routing.request_json", side_effect=fake_osrm)
+class RoutePreviewTests(SimpleTestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_preview_is_fast_and_the_plan_reuses_the_routing_call(self, osrm, meteo):
+        body = {"origin": {"lat": ORIGIN[0], "lon": ORIGIN[1]}, "destination": {"lat": DEST[0], "lon": DEST[1]},
+                "departure": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(), "load_lbs": 35_000, "interval_mi": 25}
+        client = APIClient()
+        res = client.post("/api/routes", body, format="json")
+        self.assertEqual(res.status_code, 200, res.content)
+        data = res.json()
+        self.assertEqual([r["id"] for r in data["routes"]], ["A", "B", "C"])
+        self.assertTrue(all(len(r["geometry"]) >= 2 for r in data["routes"]))
+        meteo.assert_not_called()                      # no weather needed for the preview
+        calls = osrm.call_count
+        client.post("/api/plan", body, format="json")
+        self.assertEqual(osrm.call_count, calls)       # the plan did not route again

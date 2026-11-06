@@ -40,6 +40,7 @@ export interface WeatherAlert {
   ends: string | null; onset: string | null; first_mile: number; last_mile: number; lat: number; lon: number;
 }
 export interface AlertsResponse { alerts: WeatherAlert[]; checked: number; answered: number }
+export interface RoutePreview { id: string; via?: string; distance_mi: number; geometry: [number, number][] }
 export type LayerKey = "risk" | "wind" | "rain" | "snow";
 export interface PlanInput {
   origin: Place; destination: Place; departure: string; load_lbs: number; interval_mi: 10 | 25 | 50; hos: boolean;

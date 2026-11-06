@@ -44,6 +44,23 @@ def plan(request: Request) -> Response:
 
 
 @api_view(["POST"])
+def routes_preview(request: Request) -> Response:
+    """The three route lines without weather, so the map can draw them straight away."""
+    s = PlanRequestSerializer(data=request.data)
+    s.is_valid(raise_exception=True)
+    v = s.validated_data
+    trip = planner.TripRequest(
+        origin=(v["origin"]["lat"], v["origin"]["lon"]),
+        destination=(v["destination"]["lat"], v["destination"]["lon"]),
+        departure_ts=v["departure"].timestamp(),
+        load_lbs=v["load_lbs"],
+        interval_mi=int(v["interval_mi"]),
+        hos=v["hos"],
+    )
+    return Response(planner.preview_routes(trip))
+
+
+@api_view(["POST"])
 def heatmap_view(request: Request) -> Response:
     s = HeatmapRequestSerializer(data=request.data)
     s.is_valid(raise_exception=True)

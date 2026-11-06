@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import maplibregl, { type CanvasSource, type GeoJSONSource, type Map as MLMap, type StyleSpecification } from "maplibre-gl";
-import type { Checkpoint, HeatmapResponse, LayerKey, PlanResponse, Route, WeatherAlert } from "../types";
+import type { Checkpoint, HeatmapResponse, LayerKey, PlanResponse, Route, RoutePreview, WeatherAlert } from "../types";
 import { heatColor, LEVELS, layerLevel, levelColor } from "../risk";
 import { fmtTime } from "../format";
 import { createWindFlow, mercY } from "../windFlow";
@@ -43,7 +43,7 @@ const HEAT_SCALE = 10; // heat canvas is cols*10 by rows*10 so the GPU has real 
 export interface MapHandle { setHover: (c: Checkpoint | null) => void; setHeat: (hour: number, layer: LayerKey, playing: boolean) => void; setFollow: (on: boolean) => void }
 interface Props {
   plan: PlanResponse | null; selected: string; onSelect: (id: string) => void;
-  preview: { from: [number, number]; to: [number, number] } | null; alerts: WeatherAlert[]; heat: HeatmapResponse | null; ends: { from: string; to: string }; basemap: Basemap; layer: LayerKey;
+  preview: { from: [number, number]; to: [number, number] } | null; draft: RoutePreview[] | null; alerts: WeatherAlert[]; heat: HeatmapResponse | null; ends: { from: string; to: string }; basemap: Basemap; layer: LayerKey;
 }
 
 const dot = (cls: string, text = "") => {
@@ -79,7 +79,7 @@ function gradient(r: Route, layer: LayerKey): maplibregl.ExpressionSpecification
   return ["interpolate", ["linear"], ["line-progress"], ...stops] as maplibregl.ExpressionSpecification;
 }
 
-const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, alerts, plan, selected, onSelect, heat, ends, basemap, layer }, ref) {
+const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, draft, alerts, plan, selected, onSelect, heat, ends, basemap, layer }, ref) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap>();
   const [ready, setReady] = useState(false);
@@ -383,6 +383,9 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, alerts,
       if (m.getLayer("preview")) m.removeLayer("preview");
       if (m.getLayer("preview-dots")) m.removeLayer("preview-dots");
       if (m.getSource("preview")) m.removeSource("preview");
+      if (m.getLayer("draft-case")) m.removeLayer("draft-case");
+      if (m.getLayer("draft")) m.removeLayer("draft");
+      if (m.getSource("draft")) m.removeSource("draft");
     };
     clear();
     if (!preview) return clear;
@@ -395,10 +398,16 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, alerts,
     m.addLayer({ id: "preview-dots", type: "circle", source: "preview", filter: ["==", ["geometry-type"], "MultiPoint"],
       paint: { "circle-radius": 6, "circle-color": "#fff", "circle-stroke-color": "#0e1216", "circle-stroke-width": 2.5 } });
     const b = new maplibregl.LngLatBounds(preview.from, preview.from).extend(preview.to);
+    if (draft?.length) {
+      m.addSource("draft", { type: "geojson", data: { type: "MultiLineString" as const, coordinates: draft.map((r) => r.geometry) } as GeoJSON.MultiLineString });
+      m.addLayer({ id: "draft-case", type: "line", source: "draft", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#0b0e12", "line-width": 6, "line-opacity": 0.5 } }, "preview");
+      m.addLayer({ id: "draft", type: "line", source: "draft", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#c9d2db", "line-width": 3 } }, "preview");
+      draft.forEach((r) => r.geometry.forEach((c) => b.extend(c)));
+    }
     m.resize();
     m.fitBounds(b, { padding: padFor(box.current!), duration: 700, maxZoom: 7 });
     return clear;
-  }, [preview, ready]);
+  }, [preview, draft, ready]);
 
   // official alerts: a flag where each one first touches the route
   useEffect(() => {

@@ -7,6 +7,7 @@ import math
 from dataclasses import dataclass
 
 from django.conf import settings
+from django.core.cache import cache
 
 from ..domain import eta, geo, ranking
 from ..domain.geo import METERS_PER_MILE, LatLon
@@ -134,9 +135,33 @@ def _raw_checkpoints(timed: list[TimedRoute], interval_mi: int) -> list[list[dic
     return out
 
 
+ROUTES_TTL_S = 600
+
+
+def cached_route_options(origin: LatLon, dest: LatLon, load_lbs: float):
+    """Routes change slowly, so the quick /routes preview and the full plan share one routing call."""
+    key = f"routes:{origin[0]:.4f},{origin[1]:.4f}:{dest[0]:.4f},{dest[1]:.4f}:{int(load_lbs // 5000)}"
+    hit = cache.get(key)
+    if hit is None:
+        hit = route_options(origin, dest, load_lbs)
+        cache.set(key, hit, ROUTES_TTL_S)
+    return hit
+
+
+def preview_routes(req: TripRequest) -> dict:
+    """Just the lines on the map, fast: shown while the weather is still being fetched."""
+    routes, warnings = cached_route_options(req.origin, req.destination, req.load_lbs)
+    out = []
+    for rid, r in zip(ROUTE_IDS, routes):
+        keep = simplify(r.coords, SIMPLIFY_TOLERANCE_M * 4)
+        out.append({"id": rid, "via": r.name, "distance_mi": round(sum(r.seg_distances_m) / METERS_PER_MILE, 1),
+                    "geometry": [[round(r.coords[i][1], 4), round(r.coords[i][0], 4)] for i in keep]})
+    return {"routes": out, "warnings": warnings}
+
+
 # ----------------------------------------------------------------- planning
 def plan_trip(req: TripRequest) -> dict:
-    routes, warnings = route_options(req.origin, req.destination, req.load_lbs)
+    routes, warnings = cached_route_options(req.origin, req.destination, req.load_lbs)
     timed = [time_route(r, req) for r in routes]
 
     # 1) checkpoints with arrival times
