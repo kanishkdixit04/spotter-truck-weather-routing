@@ -29,7 +29,7 @@ export default function PlaceInput({ label, mark, value, onChange }: Props) {
       geocode(v, c.signal)
         .then((r) => { setOptions(r); setActive(0); setOpen(true); setSearching(false); })
         .catch((e) => { if (e.name !== "AbortError") { setSearching(false); setFailed(true); setOptions([]); setOpen(true); } });
-    }, 250);
+    }, 150);
     c.signal.addEventListener("abort", () => clearTimeout(t));
   }
 

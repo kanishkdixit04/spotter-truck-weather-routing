@@ -145,6 +145,9 @@ export default function App() {
       const pre = await timed("routesMs", getRoutes(input)).catch(() => null);
       if (id !== run.current) return;
       if (pre) setDraft(pre.routes);
+      // The corridor is already known, so the heatmap starts now instead of after the plan.
+      const early = pre ? timed("heatmapMs", getHeatmap({ corridor: pre.corridor, start_ts: Date.parse(input.departure) / 1000, load_lbs: input.load_lbs })) : null;
+      early?.catch(() => undefined); // handled below; this only stops an early failure being reported as unhandled
       const p = await timed("planMs", planTrip(input));
       if (id !== run.current) return;
       setPreview(null);
@@ -157,8 +160,8 @@ export default function App() {
       setSelected(p.recommendation.route_id);
       setLoading(false);
       setHeatLoading(true);
-      timed("heatmapMs", getHeatmap(p))
-        .then((h) => id === run.current && setHeat(h))
+      (early ? early.catch(() => getHeatmap({ corridor: p.corridor, start_ts: p.departure_ts, load_lbs: p.load_lbs })) : timed("heatmapMs", getHeatmap({ corridor: p.corridor, start_ts: p.departure_ts, load_lbs: p.load_lbs })))
+        .then((h) => id === run.current && window.setTimeout(() => id === run.current && setHeat(h), 0)) // after the plan has rendered
         .catch((e) => id === run.current && setHeatError(e.message))
         .finally(() => id === run.current && setHeatLoading(false));
       // Official alerts for the recommended route, checked about every 80 miles.

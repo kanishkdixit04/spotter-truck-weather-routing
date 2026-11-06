@@ -161,6 +161,7 @@ class RoutePreviewTests(SimpleTestCase):
         data = res.json()
         self.assertEqual([r["id"] for r in data["routes"]], ["A", "B", "C"])
         self.assertTrue(all(len(r["geometry"]) >= 2 for r in data["routes"]))
+        self.assertGreater(len(data["corridor"]), 2)
         meteo.assert_not_called()                      # no weather needed for the preview
         calls = osrm.call_count
         client.post("/api/plan", body, format="json")

@@ -35,10 +35,10 @@ export async function geocode(q: string, signal?: AbortSignal): Promise<Place[]>
 export const planTrip = (input: PlanInput) => call<PlanResponse>("/api/plan", post(input));
 
 export const getRoutes = (input: PlanInput) =>
-  call<{ routes: RoutePreview[]; warnings: string[] }>("/api/routes", post(input));
+  call<{ routes: RoutePreview[]; warnings: string[]; corridor: [number, number][] }>("/api/routes", post(input));
 
 export const getAlerts = (points: { lat: number; lon: number; mile: number }[]) =>
   call<AlertsResponse>("/api/alerts", post({ points }));
 
-export const getHeatmap = (plan: PlanResponse) =>
-  call<HeatmapResponse>("/api/heatmap", post({ corridor: plan.corridor, start_ts: plan.departure_ts, load_lbs: plan.load_lbs }));
+export const getHeatmap = (a: { corridor: [number, number][]; start_ts: number; load_lbs: number }) =>
+  call<HeatmapResponse>("/api/heatmap", post(a));

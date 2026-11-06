@@ -156,7 +156,9 @@ def preview_routes(req: TripRequest) -> dict:
         keep = simplify(r.coords, SIMPLIFY_TOLERANCE_M * 4)
         out.append({"id": rid, "via": r.name, "distance_mi": round(sum(r.seg_distances_m) / METERS_PER_MILE, 1),
                     "geometry": [[round(r.coords[i][1], 4), round(r.coords[i][0], 4)] for i in keep]})
-    return {"routes": out, "warnings": warnings}
+    # The same corridor the plan builds, so the heatmap can load in parallel with the plan.
+    corridor = [[round(p[0], 4), round(p[1], 4)] for r in routes for p in geo.resample(r.coords, CORRIDOR_STEP_M)]
+    return {"routes": out, "warnings": warnings, "corridor": corridor}
 
 
 # ----------------------------------------------------------------- planning
