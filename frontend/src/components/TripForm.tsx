@@ -1,6 +1,7 @@
 import { ArrowDownUp, Loader2 } from "lucide-react";
 import PlaceInput from "./PlaceInput";
 import type { Place } from "../types";
+import type { RecentTrip } from "../recent";
 
 export interface FormState {
   origin: Place | null; destination: Place | null; departure: string;
@@ -19,9 +20,9 @@ function bounds() {
   return { min: iso(new Date(Date.now() - 3600e3)), max: iso(new Date(Date.now() + 7 * 864e5)) };
 }
 
-interface Props { form: FormState; set: (f: FormState) => void; loading: boolean; onSubmit: () => void }
+interface Props { form: FormState; set: (f: FormState) => void; loading: boolean; onSubmit: () => void; recent: RecentTrip[] }
 
-export default function TripForm({ form, set, loading, onSubmit }: Props) {
+export default function TripForm({ form, set, loading, onSubmit, recent }: Props) {
   const up = (p: Partial<FormState>) => set({ ...form, ...p });
   const ready = form.origin && form.destination && form.departure;
   return (
@@ -43,6 +44,18 @@ export default function TripForm({ form, set, loading, onSubmit }: Props) {
           </span>
         ))}
       </p>
+
+      {recent.length > 0 && (
+        <p className="try">
+          Recent{" "}
+          {recent.map((t, i) => (
+            <span key={t.name}>
+              <button type="button" className="link" onClick={() => up({ origin: t.o, destination: t.d })}>{t.name}</button>
+              {i < recent.length - 1 ? ", " : ""}
+            </span>
+          ))}
+        </p>
+      )}
 
       <div className="grid2">
         <label className="field">

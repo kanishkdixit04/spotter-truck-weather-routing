@@ -19,6 +19,7 @@ import Results from "./components/Results";
 import HeatBar, { type HeatBarHandle } from "./components/HeatBar";
 import ShortcutHelp from "./components/ShortcutHelp";
 import Loading from "./components/Loading";
+import { loadRecent, rememberTrip } from "./recent";
 import { ApiError, getAlerts, getHeatmap, getRoutes, planTrip } from "./api";
 import RetryCountdown from "./components/RetryCountdown";
 import DepartureAdvisor from "./components/DepartureAdvisor";
@@ -70,6 +71,7 @@ export default function App() {
   const [heatError, setHeatError] = useState("");
   const [preview, setPreview] = useState<{ from: [number, number]; to: [number, number] } | null>(null);
   const [draft, setDraft] = useState<RoutePreview[] | null>(null); // route lines shown before the weather is ready
+  const [recent, setRecent] = useState(loadRecent);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<number>();
   const showToast = useCallback((m: string) => {
@@ -143,6 +145,7 @@ export default function App() {
       setPreview(null);
       setDraft(null);
       setEnds({ from: f.origin.label, to: f.destination.label });
+      setRecent(rememberTrip(f.origin, f.destination));
       setPlan(p);
       if (window.innerWidth < 800) setSnap(0); // phones: show the map first, the answer sits in the peek bar
       setPlanKey((k) => k + 1);
@@ -267,7 +270,7 @@ export default function App() {
               <button className="link" onClick={startOwn}>Plan your own</button>
             </p>
           )}
-          <TripForm key={formKey} form={form} set={editForm} loading={loading} onSubmit={() => { setSample(false); submit(form); setSnap((s) => (s === 0 ? 1 : s)); }} />
+          <TripForm key={formKey} recent={recent} form={form} set={editForm} loading={loading} onSubmit={() => { setSample(false); submit(form); setSnap((s) => (s === 0 ? 1 : s)); }} />
           {error && (
             <div className="error" role="alert">
               <TriangleAlert size={16} aria-hidden />
