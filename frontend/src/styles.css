@@ -346,3 +346,8 @@ kbd { font: 600 12px var(--mono); padding: 2px 8px; border: 1px solid var(--line
 .why-this em { font-style: normal; font-size: 10.5px; font-weight: 600; margin-left: 8px; padding: 1px 6px; border-radius: 3px; background: var(--ink); color: var(--on-ink); }
 .why-this td.win { color: var(--text); font-weight: 650; }
 .why-this td.tie { color: var(--dim); }
+
+.probe { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; display: grid; gap: 1px; padding: 8px 10px; background: rgba(14, 18, 22, 0.94); color: var(--text); border: 1px solid var(--line2); border-radius: var(--r); font-size: 12.5px; font-variant-numeric: tabular-nums; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+.probe[hidden] { display: none; }
+.probe small { color: var(--dim); margin-top: 2px; }
+@media (pointer: coarse) { .probe { display: none; } }

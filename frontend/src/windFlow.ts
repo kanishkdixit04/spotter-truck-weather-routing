@@ -3,7 +3,7 @@ import type { HeatmapResponse } from "./types";
 
 const COUNT = 700;
 const MAX_AGE = 90;
-const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+export const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
 const lat0 = (y: number) => (2 * Math.atan(Math.exp(y)) - Math.PI / 2) * (180 / Math.PI);
 
 interface Particle { lng: number; lat: number; age: number }

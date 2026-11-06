@@ -3,7 +3,7 @@ import maplibregl, { type CanvasSource, type GeoJSONSource, type Map as MLMap, t
 import type { Checkpoint, HeatmapResponse, LayerKey, PlanResponse, Route, WeatherAlert } from "../types";
 import { heatColor, LEVELS, layerLevel, levelColor } from "../risk";
 import { fmtTime } from "../format";
-import { createWindFlow } from "../windFlow";
+import { createWindFlow, mercY } from "../windFlow";
 
 export type Basemap = "streets" | "dark" | "satellite";
 export const BASEMAPS: { id: Basemap; label: string }[] = [
@@ -97,6 +97,9 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, alerts,
   const selRef = useRef(selected);
   selRef.current = selected;
   const lastSec = useRef(0);
+  const hourRef = useRef(0);
+  const cellSlot = useRef<Map<number, number>>(new Map());
+  const probe = useRef<HTMLDivElement>();
   const layerRef = useRef(layer);
   layerRef.current = layer;
   const fitted = useRef<PlanResponse | null>(null);
@@ -135,6 +138,7 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, alerts,
       const sec = data.hours[0] - p.departure_ts + hour * 3600;
       for (const r of p.routes) trucks.current[r.id]?.setLngLat(truckAt(r, sec));
       lastSec.current = sec;
+      hourRef.current = hour;
       flow.current?.setHour(hour);
       if (follow.current) {
         const sel = p.routes.find((r) => r.id === selRef.current) ?? p.routes[0];
@@ -194,8 +198,42 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, alerts,
     if (base.current === "satellite") resolveStyle("satellite").then((st) => { setReady(false); m.setStyle(st, { diff: false }); });
     map.current = m;
     flow.current = createWindFlow(m);
+    // Hover probe: the weather under the cursor at the forecast time on the slider.
+    const tip = document.createElement("div");
+    tip.className = "probe";
+    tip.hidden = true;
+    m.getCanvasContainer().appendChild(tip);
+    probe.current = tip;
+    let queued = false;
+    m.on("mousemove", (e) => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        const hs = heatState.current;
+        if (!hs) { tip.hidden = true; return; }
+        const g = hs.data.grid;
+        const col = Math.floor(((e.lngLat.lng - g.west) / (g.east - g.west)) * g.cols);
+        const row = Math.floor(((mercY(g.north) - mercY(e.lngLat.lat)) / (mercY(g.north) - mercY(g.south))) * g.rows);
+        const k = col >= 0 && row >= 0 && col < g.cols && row < g.rows ? cellSlot.current.get(row * g.cols + col) : undefined;
+        if (k === undefined) { tip.hidden = true; return; }
+        const hr = hourRef.current, h0 = Math.min(48, Math.floor(hr)), h1 = Math.min(48, h0 + 1), f = hr - h0;
+        const at = (l: LayerKey) => hs.data.layers[l][h0][k] + (hs.data.layers[l][h1][k] - hs.data.layers[l][h0][k]) * f;
+        const lvl = LEVELS[Math.max(0, Math.min(4, Math.round(at("risk"))))];
+        tip.replaceChildren();
+        const t = document.createElement("b"); t.textContent = lvl.label; t.style.color = lvl.color;
+        const w = document.createElement("span"); w.textContent = `Wind ${Math.round(at("wind"))} mph`;
+        const p = document.createElement("span");
+        p.textContent = `Rain ${at("rain").toFixed(2)}, snow ${at("snow").toFixed(1)} in/hr`;
+        const when = document.createElement("small"); when.textContent = fmtTime(hs.data.hours[0] + hr * 3600);
+        tip.append(t, w, p, when);
+        tip.style.transform = `translate(${e.point.x + 14}px, ${e.point.y + 14}px)`;
+        tip.hidden = false;
+      });
+    });
+    m.on("mouseout", () => { tip.hidden = true; });
     if (import.meta.env.DEV) (window as unknown as { __map: MLMap }).__map = m;
-    return () => { ro.disconnect(); flow.current?.destroy(); m.remove(); };
+    return () => { ro.disconnect(); flow.current?.destroy(); tip.remove(); m.remove(); };
   }, []);
 
   // basemap switch: swap the style, then rebuild our layers on top of it
@@ -396,6 +434,7 @@ const MapView = forwardRef<MapHandle, Props>(function MapView({ preview, alerts,
     });
     m.addLayer({ id: "heat", type: "raster", source: "heat", paint: { "raster-resampling": "linear", "raster-opacity": 0.78, "raster-fade-duration": 0 } }, "rt-" + plan.routes[0].id + "-hit");
     heatState.current = { canvas, small, data: heat };
+    cellSlot.current = new Map(g.cells.map((c, k) => [c, k]));
     flow.current?.setData(heat);
   }, [heat, plan, ready]);
 
