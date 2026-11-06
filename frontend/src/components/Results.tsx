@@ -3,6 +3,7 @@ import type { Checkpoint, DeparturesResponse, LayerKey, PlanResponse, Route, Wea
 import { decide } from "../verdict";
 import RouteProfile from "./RouteProfile";
 import Briefing from "./Briefing";
+import WhyThis from "./WhyThis";
 import LoadWhatIf from "./LoadWhatIf";
 import { Link2, Printer } from "lucide-react";
 import { LEVELS, layerLevel, levelColor } from "../risk";
@@ -115,6 +116,8 @@ export default function Results({ plan, layer, selected, onSelect, onHover, deps
           </button>
         )}
       </section>
+
+      <WhyThis plan={plan} />
 
       <AlertList alerts={alerts} routeId={rec.route_id} />
       <div className="actions">

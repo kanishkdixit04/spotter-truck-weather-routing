@@ -330,3 +330,19 @@ kbd { font: 600 12px var(--mono); padding: 2px 8px; border: 1px solid var(--line
 .skip:focus { top: 12px; }
 .verdict:focus { outline: none; }
 .verdict:focus-visible { outline: 2px solid var(--ink); outline-offset: 6px; }
+
+.why-this { margin-top: -8px; }
+.why-this summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 6px 0; list-style: none; }
+.why-this summary::before { content: "+"; display: inline-block; width: 16px; font-family: var(--mono); }
+.why-this[open] summary::before { content: "-"; }
+.why-this summary:hover { color: var(--text); }
+.why-lead { color: var(--muted); font-size: 12.5px; margin: 2px 0 8px; }
+.why-this table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.why-this th, .why-this td { padding: 7px 6px; text-align: left; border-top: 1px solid var(--line); }
+.why-this thead th { border-top: 0; color: var(--dim); font-weight: 500; }
+.why-this tbody th { font-weight: 450; color: var(--muted); }
+.why-this tr.decided th { color: var(--text); }
+.why-this tr.decided td, .why-this tr.decided th { background: var(--raised); }
+.why-this em { font-style: normal; font-size: 10.5px; font-weight: 600; margin-left: 8px; padding: 1px 6px; border-radius: 3px; background: var(--ink); color: var(--on-ink); }
+.why-this td.win { color: var(--text); font-weight: 650; }
+.why-this td.tie { color: var(--dim); }
