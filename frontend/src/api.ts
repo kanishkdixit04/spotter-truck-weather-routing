@@ -21,8 +21,16 @@ const post = (body: unknown): RequestInit => ({
   method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
 });
 
-export const geocode = (q: string, signal?: AbortSignal) =>
-  call<{ results: Place[] }>(`/api/geocode?q=${encodeURIComponent(q)}`, { signal }).then((r) => r.results);
+const places = new Map<string, Place[]>(); // typing "dal", deleting, typing "dal" again costs nothing
+
+export async function geocode(q: string, signal?: AbortSignal): Promise<Place[]> {
+  const key = q.trim().toLowerCase();
+  const hit = places.get(key);
+  if (hit) return hit;
+  const { results } = await call<{ results: Place[] }>(`/api/geocode?q=${encodeURIComponent(key)}`, { signal });
+  if (results.length) places.set(key, results);
+  return results;
+}
 
 export const planTrip = (input: PlanInput) => call<PlanResponse>("/api/plan", post(input));
 

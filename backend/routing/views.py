@@ -24,7 +24,11 @@ def geocode(request: Request) -> Response:
             bias = (float(request.query_params["lat"]), float(request.query_params["lon"]))
     except ValueError:
         bias = None
-    return Response({"results": geocoding.search(query[:120], bias=bias)})
+    results = geocoding.search(query[:120].lower(), bias=bias)  # lower case so "Dallas" and "dallas" share a cache entry
+    response = Response({"results": results})
+    if results:  # place names barely change: let the browser and the CDN keep them
+        response["Cache-Control"] = "public, max-age=3600, s-maxage=86400"
+    return response
 
 
 @api_view(["POST"])

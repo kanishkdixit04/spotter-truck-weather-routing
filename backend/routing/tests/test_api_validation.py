@@ -49,3 +49,16 @@ class HeatmapValidationTests(SimpleTestCase):
     def test_start_outside_window_rejected(self):
         s = HeatmapRequestSerializer(data={"corridor": [[40, -100], [41, -99]], "start_ts": time.time() - 86400, "load_lbs": 0})
         self.assertFalse(s.is_valid())
+
+
+class GeocodeCacheHeaderTests(SimpleTestCase):
+    def test_results_are_cacheable_and_empty_ones_are_not(self):
+        from unittest import mock
+        from rest_framework.test import APIClient
+        hit = [{"label": "Dallas, Texas", "lat": 32.78, "lon": -96.8, "kind": "city"}]
+        with mock.patch("routing.views.geocoding.search", return_value=hit):
+            ok = APIClient().get("/api/geocode", {"q": "Dallas"})
+        self.assertIn("s-maxage", ok["Cache-Control"])
+        with mock.patch("routing.views.geocoding.search", return_value=[]):
+            none = APIClient().get("/api/geocode", {"q": "zzzz"})
+        self.assertFalse(none.has_header("Cache-Control"))
